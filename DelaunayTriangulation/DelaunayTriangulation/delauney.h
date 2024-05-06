@@ -15,6 +15,12 @@ public:
   HEVert(double x, double y, int _edge = -1) : x(x), y(y), edge(_edge) {}
 
   double NormSq()const{ return x*x + y*y;}
+
+
+  static double Distance(const HEVert& p, const HEVert& q) {
+    return sqrt( (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y) );
+  }
+
 };
 
 class HEFace 
@@ -83,9 +89,11 @@ public:
 
   DelaunayMesh(){}
   void InitMesh(std::vector<std::array<double,2>>& points);
-
+  
   bool CheckAllEdge();
 
+  double CalcAverateEdgeLength();
+  void   RemoveBoundingFacesWithLongEdge(double r);
 private:
   int SearchFaceCotainPoint(double x, double y);
   void AddNewVertex(double x, double y);

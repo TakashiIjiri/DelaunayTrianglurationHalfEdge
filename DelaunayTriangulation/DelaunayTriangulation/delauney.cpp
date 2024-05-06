@@ -137,9 +137,6 @@ void DelaunayMesh::InitMesh(std::vector<std::array<double, 2>>& points)
   }
   InitByVsFs(verts, faces);
 
-  //Step3 remove boundary triangles with long edges
-
-  
 }
 
 
@@ -362,6 +359,9 @@ void DelaunayMesh::InitByVsFs(
     for (auto& e : v_out_edge[v2]) if (new_es[new_es[e].next].vert == v1) e1oppo = e;
     for (auto& e : v_out_edge[v0]) if (new_es[new_es[e].next].vert == v2) e2oppo = e;
 
+    if (e0oppo != -1) new_es[e0oppo].oppo = e0;
+    if (e1oppo != -1) new_es[e1oppo].oppo = e1;
+    if (e2oppo != -1) new_es[e2oppo].oppo = e2;
     new_es.push_back(HEEdge(v0, e0oppo, e1, fi));
     new_es.push_back(HEEdge(v1, e1oppo, e2, fi));
     new_es.push_back(HEEdge(v2, e2oppo, e0, fi));
@@ -376,4 +376,87 @@ void DelaunayMesh::InitByVsFs(
   m_edges = new_es;
   m_faces = new_fs;
 
+}
+
+
+
+double DelaunayMesh::CalcAverateEdgeLength()
+{
+  double sum = 0;
+  for (int i = 0; i < (int)m_edges.size(); ++i)
+  {
+      int v1 = m_edges[i].vert;
+      int v2 = m_edges[m_edges[i].next].vert;
+      sum += HEVert::Distance(m_verts[v1], m_verts[v2]);
+  }
+  return sum / (double) m_edges.size();
+}
+
+
+void DelaunayMesh::RemoveBoundingFacesWithLongEdge(double r)
+{
+  //step1 mark faces to remove 
+  std::vector<bool> face_flg(m_faces.size(), false);
+
+  while (true)
+  {
+    bool updated = false;
+    for (int i = 0; i < m_faces.size(); ++i)
+    {
+      if (face_flg[i]) continue;
+
+      int e0, e1, e2, v0, v1, v2;
+      GetFaceVsEs(i, e0, e1, e2, v0, v1, v2);
+
+      bool isBoundary = 
+        (m_edges[e0].oppo == -1 || face_flg[m_edges[m_edges[e0].oppo].face]) ||
+        (m_edges[e1].oppo == -1 || face_flg[m_edges[m_edges[e1].oppo].face]) ||
+        (m_edges[e2].oppo == -1 || face_flg[m_edges[m_edges[e2].oppo].face]);
+      if (!isBoundary) continue;
+
+      double d0 = HEVert::Distance(m_verts[v0], m_verts[v1]);
+      double d1 = HEVert::Distance(m_verts[v1], m_verts[v2]);
+      double d2 = HEVert::Distance(m_verts[v2], m_verts[v0]);
+      if (d0 <= r && d1 <= r && d2 <= r) continue;
+
+      //remove this face
+      face_flg[i] = true;
+      updated = true;
+    }
+    if (!updated)break;
+  }
+
+  //step2 mark verts to remove
+  std::vector<bool> vert_flg(m_verts.size(), true);
+  for (int i = 0; i < m_faces.size(); ++i)
+  {
+    if (face_flg[i]) continue;
+    int e0, e1, e2, v0, v1, v2;
+    GetFaceVsEs(i, e0, e1, e2, v0, v1, v2);
+    vert_flg[v0] = vert_flg[v1] = vert_flg[v2] = false;
+  }
+
+  //step3 listup all triangles and vertex
+  std::vector<std::array<double, 2>> new_vs;
+  std::vector<std::array<int, 3>>    new_fs;
+
+  //new idx of new_vs
+  std::vector<int> new_vidx(m_verts.size(), -1);
+
+  for (int i = 0; i < m_verts.size(); ++i)
+  {
+    if (vert_flg[i]) continue;
+    new_vidx[i] = (int)new_vs.size();
+    new_vs.push_back({m_verts[i].x, m_verts[i].y});
+  }
+    
+  for (int i = 0; i < m_faces.size(); ++i)
+  {
+    if (face_flg[i]) continue;
+    int e0, e1, e2, v0, v1, v2;
+    GetFaceVsEs(i, e0, e1, e2, v0, v1, v2);
+    new_fs.push_back({ new_vidx[v0], new_vidx[v1], new_vidx[v2]});
+  }
+
+  this->InitByVsFs(new_vs, new_fs);
 }

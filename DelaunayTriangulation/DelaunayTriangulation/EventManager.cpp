@@ -27,6 +27,10 @@ EventManager::EventManager()
   m_mesh.InitMesh(points);
   std::cout << "check Delaunay: " << m_mesh.CheckAllEdge() << "\n";
 
+  double ave_len = m_mesh.CalcAverateEdgeLength();
+  m_mesh.RemoveBoundingFacesWithLongEdge(2.0 * ave_len);
+  std::cout << "check Delaunay: " << m_mesh.CheckAllEdge() << "\n";
+
 }
 
 void EventManager::DrawScene()
@@ -58,6 +62,20 @@ void EventManager::DrawScene()
     glVertex3d(v1.x, v1.y, 0);
   }
   glEnd();
+
+  //only boundary 
+  glBegin(GL_LINES);
+  glColor3d(1, 0, 0);
+  for (int i = 0; i < es.size(); ++i)
+  {
+    if (es[i].oppo != -1) continue;  
+    const delaunay::HEVert& v0 = vs[es[i].vert];
+    const delaunay::HEVert& v1 = vs[es[es[i].next].vert];
+    glVertex3d(v0.x, v0.y, 0.5);
+    glVertex3d(v1.x, v1.y, 0.5);
+  }
+  glEnd();
+
 
 
 
