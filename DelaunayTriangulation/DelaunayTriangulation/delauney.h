@@ -12,15 +12,33 @@ class HEVert
 public:
   double x, y;
   int   edge;//é©ï™Ç©ÇÁèoÇƒÇ¢Ç≠edge idx
+  
   HEVert(double x, double y, int _edge = -1) : x(x), y(y), edge(_edge) {}
 
-  double NormSq()const{ return x*x + y*y;}
+  HEVert(const HEVert& src) 
+  {
+    Set(src);
+  }
 
+  HEVert& operator=(const HEVert& src) 
+  { 
+    Set(src); 
+    return *this; 
+  }
+
+  void Set(const HEVert& src) 
+  {
+    x = src.x;
+    y = src.y;
+    edge = src.edge;
+  }
+  
+  double NormSq()const{ return x*x + y*y;}
 
   static double Distance(const HEVert& p, const HEVert& q) {
     return sqrt( (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y) );
   }
-
+  
 };
 
 class HEFace 
@@ -94,6 +112,7 @@ public:
 
   double CalcAverateEdgeLength();
   void   RemoveBoundingFacesWithLongEdge(double r);
+  void   MoveVertsToVolonoiCenter();
 private:
   int SearchFaceCotainPoint(double x, double y);
   void AddNewVertex(double x, double y);
@@ -103,9 +122,16 @@ private:
   void GetFaceVsEs(int fidx, int &e0, int &e1, int &e2, 
                              int &v0, int &v1, int &v2) const;
 
+  //if vidx is on boundary, this function returns false 
+  //otherwise this returns true and set vs/es
+  bool GetOneRing(const int vidx, std::vector<int> &vs, std::vector<int> &es);
 
   void InitByVsFs(std::vector<std::array<double,2>> &verts, 
                   std::vector<std::array<int   ,3>> &faces);
+
+
+  
+
 };
 
 

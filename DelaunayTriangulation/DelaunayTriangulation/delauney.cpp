@@ -370,6 +370,9 @@ void DelaunayMesh::InitByVsFs(
     v_out_edge[v0].push_back(e0);
     v_out_edge[v1].push_back(e1);
     v_out_edge[v2].push_back(e2);
+    new_vs[v0].edge = e0;
+    new_vs[v1].edge = e1;
+    new_vs[v2].edge = e2;
   }
 
   m_verts = new_vs;
@@ -459,4 +462,93 @@ void DelaunayMesh::RemoveBoundingFacesWithLongEdge(double r)
   }
 
   this->InitByVsFs(new_vs, new_fs);
+}
+
+
+
+
+
+
+std::vector<int> getOutgoingEdges(
+    int vertex, 
+    const std::vector<HEEdge>& edges, 
+    const std::vector<int   >& vertToEdge) 
+{
+
+  std::vector<int> outgoingEdges;
+  int startEdge = vertToEdge[vertex];
+  int edge = startEdge;
+
+  do {
+    outgoingEdges.push_back(edge);
+    edge = edges[edges[edge].oppo].next;
+  } while (edge != startEdge);
+
+  return outgoingEdges;
+}
+
+
+//if vidx is on boundary, this function returns false 
+//otherwise this returns true and set vs/es
+bool DelaunayMesh::GetOneRing(
+    const int vidx, 
+    std::vector<int>& vs, 
+    std::vector<int>& es)
+{
+  if (vidx < 0 && m_verts.size() <= vidx) return false;
+  if (m_verts[vidx].edge < 0 ) return false;
+
+  
+  const int piv_edge = m_verts[vidx].edge;
+  
+  vs.clear();
+  es.clear();
+
+  int e = piv_edge;
+  //std::cout << "----------------------  " << vidx << " " << e << "\n";
+  while(true)
+  {
+    //Check : vidx is on boundary
+    if (m_edges[e].oppo == -1)
+    {
+      es.clear();
+      return false;
+    }
+    
+    es.push_back(e);
+    e = m_edges[m_edges[e].oppo].next;
+
+    if (e == piv_edge) break;
+  }
+
+  for(const auto &it : es) 
+  {
+    vs.push_back( m_edges[m_edges[it].next].vert );
+  }
+
+  return true;
+}
+
+
+
+void DelaunayMesh::MoveVertsToVolonoiCenter()
+{
+  std::vector<HEVert> new_verts = m_verts;
+  
+  for (int i = 0; i < (int)m_verts.size(); ++i)
+  {
+    std::vector<int> vs, es;
+    if (GetOneRing(i, vs, es))
+    {
+      double x = 0, y = 0;
+      for (const auto &v : vs) 
+      {
+        x += m_verts[v].x;
+        y += m_verts[v].y;
+      }
+      new_verts[i].x = x / vs.size();
+      new_verts[i].y = y / vs.size();
+    }
+  }
+  m_verts = new_verts;
 }

@@ -16,8 +16,8 @@ EventManager::EventManager()
 
   //generate point cloud 
   const int N = 300;
-  std::vector<std::array<double,2>> points;
-  for (int i = 0; i < N; ++i) 
+  std::vector<std::array<double, 2>> points;
+  for (int i = 0; i < N; ++i)
   {
     float x = 5 * (rand() / (float)RAND_MAX * 2.0f - 1.0f);
     float y = 5 * (rand() / (float)RAND_MAX * 2.0f - 1.0f);
@@ -30,6 +30,24 @@ EventManager::EventManager()
   double ave_len = m_mesh.CalcAverateEdgeLength();
   m_mesh.RemoveBoundingFacesWithLongEdge(2.0 * ave_len);
   std::cout << "check Delaunay: " << m_mesh.CheckAllEdge() << "\n";
+
+
+  //perform centroid volonoi iteration
+  for (int i = 0; i < 30; ++i)
+  {
+    //move each vertex to its volonoi center
+    m_mesh.MoveVertsToVolonoiCenter();
+    
+    //reconstruct mesh 
+    points.clear();
+    for(const auto &v : m_mesh.m_verts) points.push_back({v.x, v.y});
+    m_mesh.InitMesh(points);
+
+    //remove bounding faces
+    m_mesh.RemoveBoundingFacesWithLongEdge(2.0 * ave_len);
+
+  }
+
 
 }
 
@@ -47,7 +65,7 @@ void EventManager::DrawScene()
   glPointSize(8);
   glBegin(GL_POINTS);
   for(int i = 0; i < vs.size(); ++i)
-    glVertex3f(vs[i].x, vs[i].y, 0);
+    glVertex3f( (float)vs[i].x, (float)vs[i].y, 0);
   glEnd();
 
 
