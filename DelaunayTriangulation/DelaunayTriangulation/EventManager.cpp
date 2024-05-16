@@ -48,7 +48,6 @@ EventManager::EventManager()
 
   }
 
-
 }
 
 void EventManager::DrawScene()
